@@ -1,0 +1,16 @@
+# Agent-generated/private artifacts
+.agents/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Node
+node_modules/
+
+# Environment/secrets
+.env
+.env.*
+!.env.example
