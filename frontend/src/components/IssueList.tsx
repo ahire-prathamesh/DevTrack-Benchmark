@@ -4,6 +4,7 @@ import { api } from '../api/client';
 import { StatusBadge, PriorityBadge } from './StatusBadge';
 import { IssueModal } from './IssueModal';
 import { ConfirmationModal } from './ConfirmationModal';
+import { IconPlus, IconEdit, IconTrash } from './Icons';
 
 interface IssueListProps {
   projectId: number;
@@ -75,20 +76,13 @@ export const IssueList: React.FC<IssueListProps> = ({ projectId, onIssueCountCha
     }
   };
 
+  const isFiltering = statusFilter !== 'All' || searchQuery.trim() !== '';
+
   return (
     <div>
-      {/* Controls Bar */}
-      <div
-        style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: '1rem',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '1.25rem',
-        }}
-      >
-        <div style={{ display: 'flex', gap: '0.75rem', flex: 1, maxWidth: '600px' }}>
+      {/* Controls Toolbar */}
+      <div className="toolbar">
+        <div className="toolbar-search-group">
           <input
             type="text"
             className="form-input"
@@ -96,6 +90,7 @@ export const IssueList: React.FC<IssueListProps> = ({ projectId, onIssueCountCha
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             style={{ flex: 2 }}
+            aria-label="Search issues by title"
           />
 
           <select
@@ -110,6 +105,20 @@ export const IssueList: React.FC<IssueListProps> = ({ projectId, onIssueCountCha
             <option value="In Progress">In Progress</option>
             <option value="Resolved">Resolved</option>
           </select>
+
+          {isFiltering && (
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={() => {
+                setStatusFilter('All');
+                setSearchQuery('');
+              }}
+              title="Reset all filters"
+            >
+              Reset
+            </button>
+          )}
         </div>
 
         <button
@@ -120,27 +129,30 @@ export const IssueList: React.FC<IssueListProps> = ({ projectId, onIssueCountCha
             setIsModalOpen(true);
           }}
         >
-          + New Issue
+          <IconPlus size={13} />
+          <span>New Issue</span>
         </button>
       </div>
 
       {error && (
-        <div style={{ padding: '0.75rem 1rem', background: 'var(--danger-bg)', border: '1px solid var(--danger)', borderRadius: 'var(--radius-sm)', color: 'var(--danger)', marginBottom: '1.25rem' }}>
+        <div className="alert-error" role="alert">
           {error}
         </div>
       )}
 
       {isLoading ? (
-        <p style={{ color: 'var(--text-secondary)', padding: '2rem 0' }}>Loading issues...</p>
+        <div style={{ padding: '3rem 0', textAlign: 'center', color: 'var(--text-secondary)' }}>
+          <p>Loading issues...</p>
+        </div>
       ) : issues.length === 0 ? (
         <div className="empty-state">
           <h3>No issues found</h3>
           <p>
-            {statusFilter !== 'All' || searchQuery
-              ? 'No issues match the selected search or filter criteria.'
-              : 'No issues tracked yet. Click "+ New Issue" to report a bug or enhancement.'}
+            {isFiltering
+              ? 'No issues match the active title query or status filter.'
+              : 'No open bugs or defects recorded yet. Track new findings with "+ New Issue".'}
           </p>
-          {(statusFilter !== 'All' || searchQuery) && (
+          {isFiltering && (
             <button
               type="button"
               className="btn btn-secondary btn-sm"
@@ -154,52 +166,71 @@ export const IssueList: React.FC<IssueListProps> = ({ projectId, onIssueCountCha
           )}
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          {issues.map((issue) => (
-            <div
-              key={issue.id}
-              className="card"
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '1rem',
-              }}
-            >
-              <div style={{ flex: 1, marginRight: '1rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.35rem' }}>
-                  <h4 style={{ fontSize: '1rem', fontWeight: 600 }}>{issue.title}</h4>
-                  <StatusBadge status={issue.status} />
-                  <PriorityBadge priority={issue.priority} />
-                </div>
-                {issue.description && (
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-                    {issue.description}
-                  </p>
-                )}
-              </div>
-
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  onClick={() => {
-                    setEditingIssue(issue);
-                    setIsModalOpen(true);
-                  }}
-                >
-                  Edit
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-danger btn-sm"
-                  onClick={() => setDeletingIssue(issue)}
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          ))}
+        /* High-Density Engineering Table */
+        <div className="table-container">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th style={{ width: '60px' }}>ID</th>
+                <th>Issue Details</th>
+                <th style={{ width: '150px' }}>Status</th>
+                <th style={{ width: '130px' }}>Priority</th>
+                <th style={{ width: '130px' }}>Created</th>
+                <th style={{ width: '140px', textAlign: 'right' }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {issues.map((issue) => (
+                <tr key={issue.id}>
+                  <td className="table-id">#{issue.id}</td>
+                  <td>
+                    <h4 className="table-title">{issue.title}</h4>
+                    {issue.description && (
+                      <p className="table-desc">{issue.description}</p>
+                    )}
+                  </td>
+                  <td>
+                    <StatusBadge status={issue.status} />
+                  </td>
+                  <td>
+                    <PriorityBadge priority={issue.priority} />
+                  </td>
+                  <td className="table-date">
+                    {new Date(issue.created_at).toLocaleDateString(undefined, {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric',
+                    })}
+                  </td>
+                  <td style={{ textAlign: 'right' }}>
+                    <div style={{ display: 'inline-flex', gap: '0.4rem' }}>
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => {
+                          setEditingIssue(issue);
+                          setIsModalOpen(true);
+                        }}
+                        aria-label={`Edit issue ${issue.title}`}
+                      >
+                        <IconEdit size={12} />
+                        <span>Edit</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-danger btn-sm"
+                        onClick={() => setDeletingIssue(issue)}
+                        aria-label={`Delete issue ${issue.title}`}
+                      >
+                        <IconTrash size={12} />
+                        <span>Delete</span>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
 
@@ -215,7 +246,7 @@ export const IssueList: React.FC<IssueListProps> = ({ projectId, onIssueCountCha
       <ConfirmationModal
         isOpen={!!deletingIssue}
         title="Delete Issue"
-        message={`Are you sure you want to delete issue "${deletingIssue?.title}"?`}
+        message={`Are you sure you want to delete issue "${deletingIssue?.title}"? This action cannot be undone.`}
         confirmLabel="Delete Issue"
         onConfirm={handleConfirmDelete}
         onCancel={() => setDeletingIssue(null)}

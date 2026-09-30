@@ -4,6 +4,7 @@ import { api } from '../api/client';
 import { StatusBadge, PriorityBadge } from './StatusBadge';
 import { TaskModal } from './TaskModal';
 import { ConfirmationModal } from './ConfirmationModal';
+import { IconPlus, IconEdit, IconTrash } from './Icons';
 
 interface TaskListProps {
   projectId: number;
@@ -75,20 +76,13 @@ export const TaskList: React.FC<TaskListProps> = ({ projectId, onTaskCountChange
     }
   };
 
+  const isFiltering = statusFilter !== 'All' || searchQuery.trim() !== '';
+
   return (
     <div>
-      {/* Controls Bar */}
-      <div
-        style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: '1rem',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '1.25rem',
-        }}
-      >
-        <div style={{ display: 'flex', gap: '0.75rem', flex: 1, maxWidth: '600px' }}>
+      {/* Controls Toolbar */}
+      <div className="toolbar">
+        <div className="toolbar-search-group">
           <input
             type="text"
             className="form-input"
@@ -96,6 +90,7 @@ export const TaskList: React.FC<TaskListProps> = ({ projectId, onTaskCountChange
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             style={{ flex: 2 }}
+            aria-label="Search tasks by title"
           />
 
           <select
@@ -110,6 +105,20 @@ export const TaskList: React.FC<TaskListProps> = ({ projectId, onTaskCountChange
             <option value="In Progress">In Progress</option>
             <option value="Done">Done</option>
           </select>
+
+          {isFiltering && (
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={() => {
+                setStatusFilter('All');
+                setSearchQuery('');
+              }}
+              title="Reset all filters"
+            >
+              Reset
+            </button>
+          )}
         </div>
 
         <button
@@ -120,27 +129,30 @@ export const TaskList: React.FC<TaskListProps> = ({ projectId, onTaskCountChange
             setIsModalOpen(true);
           }}
         >
-          + New Task
+          <IconPlus size={13} />
+          <span>New Task</span>
         </button>
       </div>
 
       {error && (
-        <div style={{ padding: '0.75rem 1rem', background: 'var(--danger-bg)', border: '1px solid var(--danger)', borderRadius: 'var(--radius-sm)', color: 'var(--danger)', marginBottom: '1.25rem' }}>
+        <div className="alert-error" role="alert">
           {error}
         </div>
       )}
 
       {isLoading ? (
-        <p style={{ color: 'var(--text-secondary)', padding: '2rem 0' }}>Loading tasks...</p>
+        <div style={{ padding: '3rem 0', textAlign: 'center', color: 'var(--text-secondary)' }}>
+          <p>Loading tasks...</p>
+        </div>
       ) : tasks.length === 0 ? (
         <div className="empty-state">
           <h3>No tasks found</h3>
           <p>
-            {statusFilter !== 'All' || searchQuery
-              ? 'No tasks match the selected search or filter criteria.'
-              : 'Get started by creating your first task in this project.'}
+            {isFiltering
+              ? 'No tasks match the active title query or status filter.'
+              : 'Keep track of engineering work by creating your first task in this workspace.'}
           </p>
-          {(statusFilter !== 'All' || searchQuery) && (
+          {isFiltering && (
             <button
               type="button"
               className="btn btn-secondary btn-sm"
@@ -154,52 +166,71 @@ export const TaskList: React.FC<TaskListProps> = ({ projectId, onTaskCountChange
           )}
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          {tasks.map((task) => (
-            <div
-              key={task.id}
-              className="card"
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '1rem',
-              }}
-            >
-              <div style={{ flex: 1, marginRight: '1rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.35rem' }}>
-                  <h4 style={{ fontSize: '1rem', fontWeight: 600 }}>{task.title}</h4>
-                  <StatusBadge status={task.status} />
-                  <PriorityBadge priority={task.priority} />
-                </div>
-                {task.description && (
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-                    {task.description}
-                  </p>
-                )}
-              </div>
-
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  onClick={() => {
-                    setEditingTask(task);
-                    setIsModalOpen(true);
-                  }}
-                >
-                  Edit
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-danger btn-sm"
-                  onClick={() => setDeletingTask(task)}
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          ))}
+        /* High-Density Engineering Table */
+        <div className="table-container">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th style={{ width: '60px' }}>ID</th>
+                <th>Task Details</th>
+                <th style={{ width: '150px' }}>Status</th>
+                <th style={{ width: '130px' }}>Priority</th>
+                <th style={{ width: '130px' }}>Created</th>
+                <th style={{ width: '160px', textAlign: 'right' }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {tasks.map((task) => (
+                <tr key={task.id}>
+                  <td className="table-id">#{task.id}</td>
+                  <td>
+                    <h4 className="table-title">{task.title}</h4>
+                    {task.description && (
+                      <p className="table-desc">{task.description}</p>
+                    )}
+                  </td>
+                  <td>
+                    <StatusBadge status={task.status} />
+                  </td>
+                  <td>
+                    <PriorityBadge priority={task.priority} />
+                  </td>
+                  <td className="table-date">
+                    {new Date(task.created_at).toLocaleDateString(undefined, {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric',
+                    })}
+                  </td>
+                  <td style={{ textAlign: 'right' }}>
+                    <div style={{ display: 'inline-flex', gap: '0.4rem' }}>
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => {
+                          setEditingTask(task);
+                          setIsModalOpen(true);
+                        }}
+                        aria-label={`Edit task ${task.title}`}
+                      >
+                        <IconEdit size={12} />
+                        <span>Edit</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-danger btn-sm"
+                        onClick={() => setDeletingTask(task)}
+                        aria-label={`Delete task ${task.title}`}
+                      >
+                        <IconTrash size={12} />
+                        <span>Delete</span>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
 
@@ -215,7 +246,7 @@ export const TaskList: React.FC<TaskListProps> = ({ projectId, onTaskCountChange
       <ConfirmationModal
         isOpen={!!deletingTask}
         title="Delete Task"
-        message={`Are you sure you want to delete task "${deletingTask?.title}"?`}
+        message={`Are you sure you want to delete task "${deletingTask?.title}"? This action cannot be undone.`}
         confirmLabel="Delete Task"
         onConfirm={handleConfirmDelete}
         onCancel={() => setDeletingTask(null)}

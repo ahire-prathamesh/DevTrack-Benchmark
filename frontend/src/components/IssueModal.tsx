@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Issue, IssueStatus, IssuePriority } from '../api/types';
+import { IconClose } from './Icons';
 
 interface IssueModalProps {
   isOpen: boolean;
@@ -41,6 +42,18 @@ export const IssueModal: React.FC<IssueModalProps> = ({
     setError(null);
   }, [issue, isOpen]);
 
+  // Keyboard navigation & accessibility: Escape key dismisses modal
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -80,21 +93,39 @@ export const IssueModal: React.FC<IssueModalProps> = ({
   };
 
   return (
-    <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="issue-modal-title">
+    <div
+      className="modal-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="issue-modal-title"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
       <div className="modal-content">
         <div className="modal-header">
-          <h3 id="issue-modal-title" className="modal-title">
-            {issue ? 'Edit Issue' : 'New Issue'}
-          </h3>
-          <button type="button" className="btn btn-secondary btn-sm" onClick={onClose}>
-            &times;
+          <div>
+            <h3 id="issue-modal-title" className="modal-title">
+              {issue ? 'Edit Issue' : 'New Issue'}
+            </h3>
+            <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.775rem', color: 'var(--text-muted)' }}>
+              {issue ? `Modifying issue #${issue.id}` : 'Record a bug, defect, or blocker report'}
+            </p>
+          </div>
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={onClose}
+            aria-label="Close dialog"
+          >
+            <IconClose size={14} />
           </button>
         </div>
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label htmlFor="issue-title" className="form-label">
-              Issue Title *
+              Issue Title <span style={{ color: 'var(--danger)' }}>*</span>
             </label>
             <input
               id="issue-title"
@@ -102,10 +133,14 @@ export const IssueModal: React.FC<IssueModalProps> = ({
               className="form-input"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. Broken styling on Safari"
+              placeholder="e.g. Broken layout on Safari iOS"
+              maxLength={200}
               autoFocus
             />
-            {error && <p className="form-error">{error}</p>}
+            <div className="field-meta">
+              {error ? <p className="form-error" style={{ margin: 0 }}>{error}</p> : <span />}
+              <span className="char-counter">{title.length} / 200</span>
+            </div>
           </div>
 
           <div className="form-group">
@@ -114,12 +149,17 @@ export const IssueModal: React.FC<IssueModalProps> = ({
             </label>
             <textarea
               id="issue-desc"
-              rows={3}
+              rows={4}
               className="form-textarea"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Steps to reproduce, environment, error details..."
+              placeholder="Steps to reproduce, stack trace, error logs, or environment details..."
+              maxLength={2000}
             />
+            <div className="field-meta">
+              <span />
+              <span className="char-counter">{description.length} / 2000</span>
+            </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
@@ -161,7 +201,7 @@ export const IssueModal: React.FC<IssueModalProps> = ({
               Cancel
             </button>
             <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
-              {isSubmitting ? 'Saving...' : issue ? 'Update Issue' : 'Create Issue'}
+              {isSubmitting ? 'Saving...' : issue ? 'Save Changes' : 'Create Issue'}
             </button>
           </div>
         </form>

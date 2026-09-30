@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Project } from '../api/types';
+import { IconClose } from './Icons';
 
 interface ProjectModalProps {
   isOpen: boolean;
@@ -29,6 +30,18 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
     }
     setError(null);
   }, [project, isOpen]);
+
+  // Keyboard accessibility: Escape key dismisses modal
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -67,21 +80,39 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
   };
 
   return (
-    <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="project-modal-title">
+    <div
+      className="modal-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="project-modal-title"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
       <div className="modal-content">
         <div className="modal-header">
-          <h3 id="project-modal-title" className="modal-title">
-            {project ? 'Edit Project' : 'New Project'}
-          </h3>
-          <button type="button" className="btn btn-secondary btn-sm" onClick={onClose}>
-            &times;
+          <div>
+            <h3 id="project-modal-title" className="modal-title">
+              {project ? 'Edit Project' : 'New Project'}
+            </h3>
+            <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.775rem', color: 'var(--text-muted)' }}>
+              {project ? `Modifying project #${project.id}` : 'Create a workspace to organize tasks and track issues'}
+            </p>
+          </div>
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={onClose}
+            aria-label="Close dialog"
+          >
+            <IconClose size={14} />
           </button>
         </div>
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label htmlFor="project-name" className="form-label">
-              Project Name *
+              Project Name <span style={{ color: 'var(--danger)' }}>*</span>
             </label>
             <input
               id="project-name"
@@ -89,10 +120,14 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
               className="form-input"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Developer Tracker Benchmark"
+              placeholder="e.g. Core Infrastructure Engine"
+              maxLength={100}
               autoFocus
             />
-            {error && <p className="form-error">{error}</p>}
+            <div className="field-meta">
+              {error ? <p className="form-error" style={{ margin: 0 }}>{error}</p> : <span />}
+              <span className="char-counter">{name.length} / 100</span>
+            </div>
           </div>
 
           <div className="form-group">
@@ -101,12 +136,17 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
             </label>
             <textarea
               id="project-desc"
-              rows={3}
+              rows={4}
               className="form-textarea"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Brief summary of project goals..."
+              placeholder="High-level objectives, scope, or team notes..."
+              maxLength={2000}
             />
+            <div className="field-meta">
+              <span />
+              <span className="char-counter">{description.length} / 2000</span>
+            </div>
           </div>
 
           <div className="modal-actions">
@@ -114,7 +154,7 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
               Cancel
             </button>
             <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
-              {isSubmitting ? 'Saving...' : project ? 'Update Project' : 'Create Project'}
+              {isSubmitting ? 'Saving...' : project ? 'Save Changes' : 'Create Project'}
             </button>
           </div>
         </form>

@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { DashboardData } from '../api/types';
 import { api } from '../api/client';
 import { StatusBadge, PriorityBadge } from './StatusBadge';
+import { IconArrowRight } from './Icons';
 
 interface DashboardViewProps {
   projectId: number;
@@ -31,13 +32,18 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ projectId, onNavig
   }, [fetchDashboard]);
 
   if (isLoading) {
-    return <p style={{ color: 'var(--text-secondary)', padding: '2rem 0' }}>Loading dashboard metrics...</p>;
+    return (
+      <div className="empty-state" style={{ borderStyle: 'solid' }}>
+        <h3>Loading project telemetry...</h3>
+        <p>Fetching task and issue metrics from database.</p>
+      </div>
+    );
   }
 
   if (error || !data) {
     return (
-      <div style={{ padding: '0.75rem 1rem', background: 'var(--danger-bg)', border: '1px solid var(--danger)', borderRadius: 'var(--radius-sm)', color: 'var(--danger)', marginBottom: '1.25rem' }}>
-        {error || 'Unable to display dashboard data.'}
+      <div className="alert-error" role="alert">
+        <strong>Telemetry Error:</strong> {error || 'Unable to display dashboard data.'}
       </div>
     );
   }
@@ -45,156 +51,176 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ projectId, onNavig
   const { task_metrics, issue_metrics, recent_tasks, recent_issues } = data;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-      {/* Top Metric Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', fontWeight: 500 }}>
-              Total Tasks
-            </span>
+    <div className="dashboard-container">
+      {/* Top Metric KPI Cards */}
+      <div className="metrics-grid">
+        {/* Task Metrics */}
+        <div className="metric-card">
+          <div className="metric-card-header">
+            <span className="metric-title">Total Tasks</span>
             {onNavigateTab && (
               <button
                 type="button"
                 className="btn btn-secondary btn-sm"
                 onClick={() => onNavigateTab('tasks')}
+                aria-label="View all tasks"
               >
-                View Tasks &rarr;
+                <span>Tasks Tab</span>
+                <IconArrowRight size={12} />
               </button>
             )}
           </div>
-          <span style={{ fontSize: '2.2rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-            {task_metrics.total}
-          </span>
-          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.25rem' }}>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-              Todo: <strong>{task_metrics.by_status['Todo'] || 0}</strong>
+
+          <div className="metric-main">
+            <span className="metric-number">{task_metrics.total}</span>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>registered items</span>
+          </div>
+
+          <div className="metric-status-row" aria-label="Task status breakdown">
+            <span className="metric-pill">
+              <span>Todo:</span>
+              <strong>{task_metrics.by_status['Todo'] || 0}</strong>
             </span>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>&bull;</span>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-              In Progress: <strong>{task_metrics.by_status['In Progress'] || 0}</strong>
+            <span className="metric-pill">
+              <span>In Progress:</span>
+              <strong>{task_metrics.by_status['In Progress'] || 0}</strong>
             </span>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>&bull;</span>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-              Done: <strong>{task_metrics.by_status['Done'] || 0}</strong>
+            <span className="metric-pill">
+              <span>Done:</span>
+              <strong>{task_metrics.by_status['Done'] || 0}</strong>
             </span>
           </div>
         </div>
 
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', fontWeight: 500 }}>
-              Total Issues
-            </span>
+        {/* Issue Metrics */}
+        <div className="metric-card">
+          <div className="metric-card-header">
+            <span className="metric-title">Total Issues</span>
             {onNavigateTab && (
               <button
                 type="button"
                 className="btn btn-secondary btn-sm"
                 onClick={() => onNavigateTab('issues')}
+                aria-label="View all issues"
               >
-                View Issues &rarr;
+                <span>Issues Tab</span>
+                <IconArrowRight size={12} />
               </button>
             )}
           </div>
-          <span style={{ fontSize: '2.2rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-            {issue_metrics.total}
-          </span>
-          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.25rem' }}>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-              Open: <strong>{issue_metrics.by_status['Open'] || 0}</strong>
+
+          <div className="metric-main">
+            <span className="metric-number">{issue_metrics.total}</span>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>logged reports</span>
+          </div>
+
+          <div className="metric-status-row" aria-label="Issue status breakdown">
+            <span className="metric-pill">
+              <span>Open:</span>
+              <strong>{issue_metrics.by_status['Open'] || 0}</strong>
             </span>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>&bull;</span>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-              In Progress: <strong>{issue_metrics.by_status['In Progress'] || 0}</strong>
+            <span className="metric-pill">
+              <span>In Progress:</span>
+              <strong>{issue_metrics.by_status['In Progress'] || 0}</strong>
             </span>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>&bull;</span>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-              Resolved: <strong>{issue_metrics.by_status['Resolved'] || 0}</strong>
+            <span className="metric-pill">
+              <span>Resolved:</span>
+              <strong>{issue_metrics.by_status['Resolved'] || 0}</strong>
             </span>
           </div>
         </div>
       </div>
 
-      {/* Recent Items Section */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.25rem' }}>
-        {/* Recent Tasks Column */}
-        <div className="card" style={{ padding: '1.25rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 600 }}>Recent Tasks</h3>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Latest up to 5</span>
+      {/* Recent Items Dual Panel Grid */}
+      <div className="recent-panels-grid">
+        {/* Recent Tasks */}
+        <div className="recent-panel">
+          <div className="recent-panel-header">
+            <h3>Recent Tasks</h3>
+            <span style={{ fontSize: '0.75rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
+              Latest 5
+            </span>
           </div>
 
           {recent_tasks.length === 0 ? (
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', fontStyle: 'italic' }}>
-              No tasks tracked yet in this project.
-            </p>
+            <div style={{ padding: '2rem 1.5rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+              <p style={{ margin: 0, fontSize: '0.875rem' }}>No tasks tracked yet in this project.</p>
+            </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {recent_tasks.map((task) => (
-                <div
-                  key={task.id}
-                  style={{
-                    padding: '0.75rem',
-                    background: 'var(--bg-tertiary)',
-                    borderRadius: 'var(--radius-sm)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '0.4rem',
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontWeight: 600, fontSize: '0.95rem' }}>{task.title}</span>
-                    <StatusBadge status={task.status} />
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <PriorityBadge priority={task.priority} />
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                      {new Date(task.created_at).toLocaleDateString()}
-                    </span>
-                  </div>
-                </div>
-              ))}
+            <div className="table-responsive">
+              <table className="data-table" aria-label="Recent tasks table">
+                <thead>
+                  <tr>
+                    <th style={{ width: '4rem' }}>ID</th>
+                    <th>Task</th>
+                    <th style={{ width: '7rem' }}>Status</th>
+                    <th style={{ width: '6rem' }}>Priority</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recent_tasks.map((task) => (
+                    <tr key={task.id}>
+                      <td className="table-id">#{task.id}</td>
+                      <td>
+                        <div className="table-title">{task.title}</div>
+                        {task.description && <div className="table-desc">{task.description}</div>}
+                      </td>
+                      <td>
+                        <StatusBadge status={task.status} />
+                      </td>
+                      <td>
+                        <PriorityBadge priority={task.priority} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </div>
 
-        {/* Recent Issues Column */}
-        <div className="card" style={{ padding: '1.25rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 600 }}>Recent Issues</h3>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Latest up to 5</span>
+        {/* Recent Issues */}
+        <div className="recent-panel">
+          <div className="recent-panel-header">
+            <h3>Recent Issues</h3>
+            <span style={{ fontSize: '0.75rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
+              Latest 5
+            </span>
           </div>
 
           {recent_issues.length === 0 ? (
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', fontStyle: 'italic' }}>
-              No issues tracked yet in this project.
-            </p>
+            <div style={{ padding: '2rem 1.5rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+              <p style={{ margin: 0, fontSize: '0.875rem' }}>No issues tracked yet in this project.</p>
+            </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {recent_issues.map((issue) => (
-                <div
-                  key={issue.id}
-                  style={{
-                    padding: '0.75rem',
-                    background: 'var(--bg-tertiary)',
-                    borderRadius: 'var(--radius-sm)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '0.4rem',
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontWeight: 600, fontSize: '0.95rem' }}>{issue.title}</span>
-                    <StatusBadge status={issue.status} />
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <PriorityBadge priority={issue.priority} />
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                      {new Date(issue.created_at).toLocaleDateString()}
-                    </span>
-                  </div>
-                </div>
-              ))}
+            <div className="table-responsive">
+              <table className="data-table" aria-label="Recent issues table">
+                <thead>
+                  <tr>
+                    <th style={{ width: '4rem' }}>ID</th>
+                    <th>Issue</th>
+                    <th style={{ width: '7rem' }}>Status</th>
+                    <th style={{ width: '6rem' }}>Priority</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recent_issues.map((issue) => (
+                    <tr key={issue.id}>
+                      <td className="table-id">#{issue.id}</td>
+                      <td>
+                        <div className="table-title">{issue.title}</div>
+                        {issue.description && <div className="table-desc">{issue.description}</div>}
+                      </td>
+                      <td>
+                        <StatusBadge status={issue.status} />
+                      </td>
+                      <td>
+                        <PriorityBadge priority={issue.priority} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </div>

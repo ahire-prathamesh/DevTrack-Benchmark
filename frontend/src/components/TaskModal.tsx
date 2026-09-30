@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Task, TaskStatus, TaskPriority } from '../api/types';
+import { IconClose } from './Icons';
 
 interface TaskModalProps {
   isOpen: boolean;
@@ -41,6 +42,18 @@ export const TaskModal: React.FC<TaskModalProps> = ({
     setError(null);
   }, [task, isOpen]);
 
+  // Keyboard navigation & accessibility: Escape key dismisses modal
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -80,21 +93,39 @@ export const TaskModal: React.FC<TaskModalProps> = ({
   };
 
   return (
-    <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="task-modal-title">
+    <div
+      className="modal-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="task-modal-title"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
       <div className="modal-content">
         <div className="modal-header">
-          <h3 id="task-modal-title" className="modal-title">
-            {task ? 'Edit Task' : 'New Task'}
-          </h3>
-          <button type="button" className="btn btn-secondary btn-sm" onClick={onClose}>
-            &times;
+          <div>
+            <h3 id="task-modal-title" className="modal-title">
+              {task ? 'Edit Task' : 'New Task'}
+            </h3>
+            <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.775rem', color: 'var(--text-muted)' }}>
+              {task ? `Modifying task #${task.id}` : 'Create a tracked item with status and priority'}
+            </p>
+          </div>
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={onClose}
+            aria-label="Close dialog"
+          >
+            <IconClose size={14} />
           </button>
         </div>
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label htmlFor="task-title" className="form-label">
-              Task Title *
+              Task Title <span style={{ color: 'var(--danger)' }}>*</span>
             </label>
             <input
               id="task-title"
@@ -103,9 +134,13 @@ export const TaskModal: React.FC<TaskModalProps> = ({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Implement REST endpoints"
+              maxLength={200}
               autoFocus
             />
-            {error && <p className="form-error">{error}</p>}
+            <div className="field-meta">
+              {error ? <p className="form-error" style={{ margin: 0 }}>{error}</p> : <span />}
+              <span className="char-counter">{title.length} / 200</span>
+            </div>
           </div>
 
           <div className="form-group">
@@ -114,12 +149,17 @@ export const TaskModal: React.FC<TaskModalProps> = ({
             </label>
             <textarea
               id="task-desc"
-              rows={3}
+              rows={4}
               className="form-textarea"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Technical notes or acceptance details..."
+              placeholder="Technical context, acceptance criteria, or implementation details..."
+              maxLength={2000}
             />
+            <div className="field-meta">
+              <span />
+              <span className="char-counter">{description.length} / 2000</span>
+            </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
@@ -161,7 +201,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
               Cancel
             </button>
             <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
-              {isSubmitting ? 'Saving...' : task ? 'Update Task' : 'Create Task'}
+              {isSubmitting ? 'Saving...' : task ? 'Save Changes' : 'Create Task'}
             </button>
           </div>
         </form>
